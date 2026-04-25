@@ -1,7 +1,152 @@
-<!DOCTYPE html>
-<html>
+  <!doctype html>
+  <html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Markdown 图片库</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        margin: 0;
+        padding: 32px;
+        background: #f6f8fa;
+        color: #24292f;
+      }
+
+      h1 {
+        margin-top: 0;
+      }
+
+      .gallery {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 20px;
+        margin-top: 24px;
+      }
+
+      .card {
+        background: white;
+        border: 1px solid #d0d7de;
+        border-radius: 10px;
+        padding: 12px;
+        box-shadow: 0 1px 2px rgba(27, 31, 36, 0.04);
+      }
+
+      .card img {
+        width: 100%;
+        height: 160px;
+        object-fit: contain;
+        background: #fff;
+        border: 1px solid #d8dee4;
+        border-radius: 6px;
+      }
+
+      .name {
+        margin: 10px 0 8px;
+        font-weight: 600;
+        word-break: break-all;
+      }
+
+      textarea {
+        width: 100%;
+        height: 72px;
+        box-sizing: border-box;
+        resize: vertical;
+        font-size: 12px;
+        font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      }
+
+      button {
+        margin-top: 8px;
+        cursor: pointer;
+      }
+
+      .status {
+        margin-top: 16px;
+        color: #57606a;
+      }
+    </style>
+  </head>
   <body>
-    <h1>Hello GitHub Pages</h1>
-    <p>mdpng is working.</p>
+    <h1>Markdown 图片库</h1>
+    <p>这里展示 <code>images/</code> 文件夹里的图片，并提供 Markdown 引用地址。</p>
+
+    <div id="status" class="status">正在加载图片……</div>
+    <div id="gallery" class="gallery"></div>
+
+    <script>
+      const owner = "sfdgelxcm";
+      const repo = "mdpng";
+      const branch = "main";
+      const folder = "images";
+      const pagesBase = `https://${owner}.github.io/${repo}/`;
+
+      const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${folder}?ref=${branch}`;
+
+      function isImage(filename) {
+        return /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(filename);
+      }
+
+      function pagesUrl(path) {
+        return pagesBase + path.split("/").map(encodeURIComponent).join("/");
+      }
+
+      async function copyText(text) {
+        await navigator.clipboard.writeText(text);
+      }
+
+      async function loadImages() {
+        const status = document.getElementById("status");
+        const gallery = document.getElementById("gallery");
+
+        try {
+          const response = await fetch(apiUrl);
+          if (!response.ok) {
+            throw new Error(`GitHub API 请求失败：${response.status}`);
+          }
+
+          const files = await response.json();
+          const images = files.filter(file => file.type === "file" && isImage(file.name));
+
+          if (images.length === 0) {
+            status.textContent = "images/ 文件夹里没有找到图片。";
+            return;
+          }
+
+          status.textContent = `共找到 ${images.length} 张图片。`;
+
+          for (const file of images) {
+            const url = pagesUrl(file.path);
+            const markdown = `![${file.name}](${url})`;
+
+            const card = document.createElement("div");
+            card.className = "card";
+
+            card.innerHTML = `
+              <a href="${url}" target="_blank">
+                <img src="${url}" alt="${file.name}">
+              </a>
+              <div class="name">${file.name}</div>
+              <textarea readonly>${markdown}</textarea>
+              <button type="button">复制 Markdown</button>
+            `;
+
+            card.querySelector("button").addEventListener("click", async () => {
+              await copyText(markdown);
+              card.querySelector("button").textContent = "已复制";
+              setTimeout(() => {
+                card.querySelector("button").textContent = "复制 Markdown";
+              }, 1200);
+            });
+
+            gallery.appendChild(card);
+          }
+        } catch (error) {
+          status.textContent = error.message;
+        }
+      }
+
+      loadImages();
+    </script>
   </body>
-</html>
+  </html>
